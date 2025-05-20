@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>GeoGongue - Compartir ubicación</title>
+  <link rel="stylesheet" href="estilos.css" />
+  <link rel="icon" href="icono.png" type="image/png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <h2>Menú</h2>
+    <ul>
+      <li><a href="#quienes">¿Quiénes somos?</a></li>
+      <li><a href="#objetivo">Objetivo</a></li>
+      <li><a href="#funciona">Cómo funciona</a></li>
+      <li><a href="#video">Video</a></li>
+    </ul>
+    <button class="boton-tema" onclick="cambiarTema()">
+      <i class="fas fa-adjust"></i> Cambiar tema
+    </button>
+  </aside>
+
+  <main class="contenido">
+    <div class="contenedor-logo">
+      <img src="../vs/Logo.png" class="imagen1" alt="Logo GeoGongue" />
+    </div>
+
+    <div class="contenedor-arriba">
+      <h2 class="titulo">GeoGongue</h2>
+
+      <div class="seccion" id="quienes">
+        <h3>¿Quiénes somos?</h3>
+        <p>
+          GeoGongue es una iniciativa liderada por Rubén González, apasionado por la tecnología y la geolocalización.
+          Nuestra misión es ofrecer soluciones accesibles para compartir y visualizar ubicaciones en tiempo real.
+        </p>
+      </div>
+
+      <div class="seccion" id="objetivo">
+        <h3>¿Cuál es nuestro objetivo?</h3>
+        <p>
+          Buscamos que volver a casa sea más seguro. Nuestra plataforma permite compartir tu ubicación en tiempo real
+          para que alguien de confianza pueda acompañarte digitalmente.
+        </p>
+      </div>
+
+      <div class="seccion" id="funciona">
+        <h3>¿Cómo funciona?</h3>
+        <ul>
+          <li>Abre esta página web</li>
+          <li>Pulsa el botón "¿Quieres compartir ubicación?"</li>
+          <li>Acepta los permisos del navegador</li>
+          <li>Activa el GPS</li>
+          <li>Tu ubicación se enviará automáticamente a nuestra base de datos</li>
+          <li>Desde <strong>viewer.html</strong> se mostrará en un mapa en tiempo real</li>
+        </ul>
+      </div>
+
+      <div class="seccion" id="video">
+        <h3>Demostración en video</h3>
+        <video width="100%" controls>
+          <source src="../vs/video.mp4" type="video/mp4" />
+          Tu navegador no soporta la reproducción de video.
+        </video>
+      </div>
+
+      <button onclick="iniciarCompartirUbicacion()" class="boton">Compartir ubicación</button>
+      <p id="estado">Presiona el botón para comenzar.</p>
+    </div>
+
+    <footer class="footer">
+      <p>GeoGongue, Hecho para ayudar</p>
+    </footer>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+  <script>
+    const configuracionFirebase = {
+      apiKey: "AIzaSyBeFjGJxyj9FleDmJvULLU1PVEf2PbSe4Q",
+      authDomain: "georubengongue.firebaseapp.com",
+      databaseURL: "https://georubengongue-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "georubengongue",
+      storageBucket: "georubengongue.appspot.com",
+      messagingSenderId: "816192291958",
+      appId: "1:816192291958:web:a3c49d47a5ff1b4272cb57"
+    };
+
+    firebase.initializeApp(configuracionFirebase);
+    const baseDatos = firebase.database();
+
+    const elementoEstado = document.getElementById("estado");
+    let nombreUsuario = null;
+    let watcherId = null;
+
+    function enviarUbicacion(posicion) {
+      const lat = posicion.coords.latitude;
+      const lng = posicion.coords.longitude;
+
+      elementoEstado.innerText = `Ubicación enviada: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+      baseDatos.ref("ubicaciones/" + nombreUsuario).set({
+        lat: lat,
+        lng: lng,
+        timestamp: Date.now()
+      });
+    }
+
+    function mostrarError(error) {
+      elementoEstado.innerText = "No se pudo obtener la ubicación: " + error.message;
+    }
+
+    function iniciarCompartirUbicacion() {
+      if (!nombreUsuario) {
+        nombreUsuario = prompt("Ingresa tu nombre de usuario:") || "desconocido";
+      }
+
+      if ("geolocation" in navigator) {
+        elementoEstado.innerText = "Solicitando permiso de ubicación...";
+        watcherId = navigator.geolocation.watchPosition(enviarUbicacion, mostrarError, {
+          enableHighAccuracy: true,
+          maximumAge: 10000,
+          timeout: 5000
+        });
+      } else {
+        elementoEstado.innerText = "La geolocalización no es compatible con este navegador.";
+      }
+    }
+
+    const temaGuardado = localStorage.getItem("tema");
+    if (temaGuardado) {
+      document.body.classList.add(temaGuardado);
+    } else {
+      document.body.classList.add("modo-claro");
+    }
+
+    function cambiarTema() {
+      const esOscuro = document.body.classList.contains("modo-oscuro");
+      document.body.classList.toggle("modo-oscuro", !esOscuro);
+      document.body.classList.toggle("modo-claro", esOscuro);
+      localStorage.setItem("tema", !esOscuro ? "modo-oscuro" : "modo-claro");
+    }
+  </script>
+</body>
+</html>

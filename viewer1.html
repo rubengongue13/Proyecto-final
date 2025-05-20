@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>GeoGongue - Mapa de ubicaciones</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="mapa.css" />
+  <link rel="icon" href="icono.png" type="image/png">
+</head>
+<body class="modo-claro">
+  <aside class="sidebar">
+    <h2><i class="fas fa-map-marked-alt"></i> GeoGongue</h2>
+    <ul>
+      <li><button onclick="cambiarTema()"><i class="fas fa-adjust"></i> Cambiar tema</button></li>
+      <li><button onclick="centrarMapa()"><i class="fas fa-location-crosshairs"></i> Centrar mapa</button></li>
+    </ul>
+    <div class="buscador">
+      <input type="text" id="busqueda" placeholder="Buscar usuario..." onkeypress="if(event.key==='Enter'){buscarYEnfocar();}">
+      <button onclick="buscarYEnfocar()"><i class="fas fa-search"></i></button>
+    </div>
+    <p class="estado-db" id="estado">Conectando a Firebase...</p>
+  </aside>
+
+  <main class="mapa">
+    <div id="map"></div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBeFjGJxyj9FleDmJvULLU1PVEf2PbSe4Q",
+      authDomain: "georubengongue.firebaseapp.com",
+      databaseURL: "https://georubengongue-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "georubengongue",
+      storageBucket: "georubengongue.appspot.com",
+      messagingSenderId: "816192291958",
+      appId: "1:816192291958:web:a3c49d47a5ff1b4272cb57"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const estado = document.getElementById("estado");
+    const busqueda = document.getElementById("busqueda");
+
+    const map = L.map('map').setView([40.4168, -3.7038], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: ' OpenStreetMap'
+    }).addTo(map);
+
+    let marcadores = {};
+
+    function actualizarMapa(datos) {
+      Object.values(marcadores).forEach(marker => map.removeLayer(marker));
+      marcadores = {};
+
+      for (const nombre in datos) {
+        const dato = datos[nombre];
+        if (dato.lat && dato.lng) {
+          const clave = nombre.toLowerCase().trim();
+          const marcador = L.marker([dato.lat, dato.lng])
+            .addTo(map)
+            .bindPopup(`<strong>${nombre}</strong><br>${new Date(dato.timestamp).toLocaleString()}`);
+          marcador.nombre = clave;
+          marcadores[clave] = marcador;
+        }
+      }
+
+      filtrarMarcadores();
+    }
+
+    function filtrarMarcadores() {
+      const texto = busqueda.value.toLowerCase().trim();
+      for (const nombre in marcadores) {
+        const marcador = marcadores[nombre];
+        if (nombre.includes(texto)) {
+          marcador.addTo(map);
+        } else {
+          map.removeLayer(marcador);
+        }
+      }
+    }
+
+    function buscarYEnfocar() {
+      const texto = busqueda.value.toLowerCase().trim();
+      if (marcadores[texto]) {
+        const marcador = marcadores[texto];
+        map.setView(marcador.getLatLng(), 12, { animate: true });
+        marcador.openPopup();
+      } else {
+        alert("Usuario no encontrado.");
+      }
+    }
+
+    db.ref("ubicaciones").on("value", snapshot => {
+      const datos = snapshot.val();
+      if (datos) {
+        estado.innerText = "Ubicaciones cargadas correctamente.";
+        actualizarMapa(datos);
+      } else {
+        estado.innerText = "No hay ubicaciones registradas.";
+      }
+    }, (error) => {
+      estado.innerText = "Error al conectar con Firebase: " + error.message;
+    });
+
+    function cambiarTema() {
+      document.body.classList.toggle("modo-oscuro");
+      document.body.classList.toggle("modo-claro");
+    }
+
+    function centrarMapa() {
+      map.setView([40.4168, -3.7038], 6);
+    }
+  </script>
+</body>
+</html>
