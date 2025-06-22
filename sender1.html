@@ -7,7 +7,12 @@
   <link rel="icon" href="icono.png" type="image/png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
-<body>
+<body class="modo-claro">
+  <!-- Contenedor para mostrar el correo del usuario -->
+  <div id="correoSesion" style="display: none; position: fixed; top: 20px; right: 20px; background-color: rgba(0, 0, 0, 0.7); color: #fff; padding: 10px 15px; border-radius: 8px; font-size: 1rem;">
+    Has iniciado sesión como: <span id="emailUsuario">usuario@example.com</span>
+  </div>
+
   <aside class="sidebar">
     <h2>Menú</h2>
     <ul>
@@ -19,6 +24,17 @@
     <button class="boton-tema" onclick="cambiarTema()">
       <i class="fas fa-adjust"></i> Cambiar tema
     </button>
+    <!-- Botones de autenticación -->
+    <button id="loginBtn" onclick="iniciarSesion()">Iniciar sesión</button>
+    <button id="logoutBtn" onclick="cerrarSesion()" style="display: none;">Cerrar sesión</button>
+    <button id="registerBtn" onclick="registrarUsuario()" style="display: inline-block;">Registrar usuario</button>
+    <!-- Botón para ir al mapa -->
+    <button id="irAlMapaBtn" onclick="irAlMapa()" style="display: none;">Ir a ver ubicación</button>
+    
+    <!-- Botón de emergencia -->
+    <button id="emergencyBtn" onclick="emergencyAlert()" style="padding: 12px 24px; background-color: #d32f2f; color: #fff; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; transition: background-color 0.3s ease;">
+      ¡Emergencia!
+    </button>
   </aside>
 
   <main class="contenido">
@@ -28,43 +44,6 @@
 
     <div class="contenedor-arriba">
       <h2 class="titulo">GeoGongue</h2>
-
-      <div class="seccion" id="quienes">
-        <h3>¿Quiénes somos?</h3>
-        <p>
-          GeoGongue es una iniciativa liderada por Rubén González, apasionado por la tecnología y la geolocalización.
-          Nuestra misión es ofrecer soluciones accesibles para compartir y visualizar ubicaciones en tiempo real.
-        </p>
-      </div>
-
-      <div class="seccion" id="objetivo">
-        <h3>¿Cuál es nuestro objetivo?</h3>
-        <p>
-          Buscamos que volver a casa sea más seguro. Nuestra plataforma permite compartir tu ubicación en tiempo real
-          para que alguien de confianza pueda acompañarte digitalmente.
-        </p>
-      </div>
-
-      <div class="seccion" id="funciona">
-        <h3>¿Cómo funciona?</h3>
-        <ul>
-          <li>Abre esta página web</li>
-          <li>Pulsa el botón "¿Quieres compartir ubicación?"</li>
-          <li>Acepta los permisos del navegador</li>
-          <li>Activa el GPS</li>
-          <li>Tu ubicación se enviará automáticamente a nuestra base de datos</li>
-          <li>Desde <strong>viewer.html</strong> se mostrará en un mapa en tiempo real</li>
-        </ul>
-      </div>
-
-      <div class="seccion" id="video">
-        <h3>Demostración en video</h3>
-        <video width="100%" controls>
-          <source src="https://raw.githubusercontent.com/rubengongue13/Proyecto-final/main/video.mp4" type="video/mp4" />
-          Tu navegador no soporta la reproducción de video.
-        </video>
-      </div>
-
       <button onclick="iniciarCompartirUbicacion()" class="boton">Compartir ubicación</button>
       <p id="estado">Presiona el botón para comenzar.</p>
     </div>
@@ -75,73 +54,154 @@
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+  <!-- EmailJS -->
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
   <script>
     const firebaseConfig = {
-  apiKey: "AIzaSyBeFjGJxyj9FleDmJvULLU1PVEf2PbSe4Q",
-  authDomain: "georubengongue.firebaseapp.com",
-  databaseURL: "https://georubengongue-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "georubengongue",
-  storageBucket: "georubengongue.firebasestorage.app",
-  messagingSenderId: "816192291958",
-  appId: "1:816192291958:web:a3c49d47a5ff1b4272cb57",
-  measurementId: "G-Q4DDVG2M89"
-};
-    firebase.initializeApp(firebaseConfig);
-    const baseDatos = firebase.database();
+      apiKey: "AIzaSyBeFjGJxyj9FleDmJvULLU1PVEf2PbSe4Q",
+      authDomain: "georubengongue.firebaseapp.com",
+      databaseURL: "https://georubengongue-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "georubengongue",
+      storageBucket: "georubengongue.appspot.com",
+      messagingSenderId: "816192291958",
+      appId: "1:816192291958:web:a3c49d47a5ff1b4272cb57"
+    };
 
-    const elementoEstado = document.getElementById("estado");
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
     let nombreUsuario = null;
     let watcherId = null;
 
-    function enviarUbicacion(posicion) {
-      const lat = posicion.coords.latitude;
-      const lng = posicion.coords.longitude;
+    // Función para manejar la emergencia
+    function emergencyAlert() {
+      // Enviar correo de emergencia
+      sendEmergencyEmail();
 
-      elementoEstado.innerText = `Ubicación enviada: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-
-      baseDatos.ref("ubicaciones/" + nombreUsuario).set({
-        lat: lat,
-        lng: lng,
-        timestamp: Date.now()
-      });
+      // Intentar realizar una llamada (solo en dispositivos móviles)
+      window.location.href = "tel:+644849877"; // Reemplaza el número por el que desees llamar
     }
 
-    function mostrarError(error) {
-      elementoEstado.innerText = "No se pudo obtener la ubicación: " + error.message;
+    // Función para enviar un correo de emergencia (usando EmailJS)
+    function sendEmergencyEmail() {
+      emailjs.init("fHqB_H3QKq890zeD2"); // Reemplaza con tu user ID de EmailJS
+
+      const emailParams = {
+        to_email: "destinatario@example.com", // Reemplaza con el correo del destinatario
+        subject: "¡Emergencia! Necesito ayuda",
+        message: "He pulsado el botón de emergencia en la app GeoGongue. Necesito ayuda. Por favor, contacte conmigo lo antes posible."
+      };
+
+      emailjs.send("service_aidwybl", "template_o6dgsek", emailParams)
+        .then((response) => {
+          console.log("Correo de emergencia enviado:", response);
+          alert("Correo de emergencia enviado.");
+        })
+        .catch((error) => {
+          console.error("Error al enviar el correo de emergencia:", error);
+          alert("Error al enviar el correo de emergencia.");
+        });
     }
 
+    // Función para registrar un nuevo usuario
+    function registrarUsuario() {
+      const email = prompt("Introduce tu correo electrónico");
+      const password = prompt("Introduce tu contraseña");
+      
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(userCredential => {
+          nombreUsuario = userCredential.user.email.replace('.', '_'); // Normaliza el email
+          document.getElementById("loginBtn").style.display = "none";
+          document.getElementById("logoutBtn").style.display = "inline-block";
+          document.getElementById("registerBtn").style.display = "none";
+          document.getElementById("irAlMapaBtn").style.display = "inline-block"; // Mostrar el botón de ir al mapa
+          document.getElementById("correoSesion").style.display = "block";
+          document.getElementById("emailUsuario").textContent = userCredential.user.email; // Mostrar correo
+        })
+        .catch(error => {
+          console.error("Error al registrar usuario:", error);
+        });
+    }
+
+    // Función para iniciar sesión
+    function iniciarSesion() {
+      const email = prompt("Introduce tu correo electrónico");
+      const password = prompt("Introduce tu contraseña");
+      
+      auth.signInWithEmailAndPassword(email, password)
+        .then(userCredential => {
+          nombreUsuario = userCredential.user.email.replace('.', '_'); // Normaliza el email
+          document.getElementById("loginBtn").style.display = "none";
+          document.getElementById("logoutBtn").style.display = "inline-block";
+          document.getElementById("registerBtn").style.display = "none";
+          document.getElementById("irAlMapaBtn").style.display = "inline-block"; // Mostrar el botón de ir al mapa
+          document.getElementById("correoSesion").style.display = "block";
+          document.getElementById("emailUsuario").textContent = userCredential.user.email; // Mostrar correo
+        })
+        .catch(error => {
+          console.error("Error al iniciar sesión:", error);
+        });
+    }
+
+    // Función para cerrar sesión
+    function cerrarSesion() {
+      auth.signOut()
+        .then(() => {
+          document.getElementById("loginBtn").style.display = "inline-block";
+          document.getElementById("logoutBtn").style.display = "none";
+          document.getElementById("registerBtn").style.display = "inline-block";
+          document.getElementById("irAlMapaBtn").style.display = "none"; // Ocultar el botón de ir al mapa
+          document.getElementById("correoSesion").style.display = "none"; // Ocultar el correo al cerrar sesión
+        })
+        .catch(error => {
+          console.error("Error al cerrar sesión:", error);
+        });
+    }
+
+    // Función para ir a la página de ver ubicación
+    function irAlMapa() {
+      window.location.href = "viewer1.html";
+    }
+
+    // Función para compartir ubicación
     function iniciarCompartirUbicacion() {
       if (!nombreUsuario) {
-        nombreUsuario = prompt("Ingresa tu nombre de usuario:") || "desconocido";
+        alert("Por favor, inicia sesión primero.");
+        return;
       }
 
       if ("geolocation" in navigator) {
-        elementoEstado.innerText = "Solicitando permiso de ubicación...";
-        watcherId = navigator.geolocation.watchPosition(enviarUbicacion, mostrarError, {
-          enableHighAccuracy: true,
-          maximumAge: 10000,
-          timeout: 5000
-        });
+        navigator.geolocation.watchPosition(
+          posicion => {
+            const lat = posicion.coords.latitude;
+            const lng = posicion.coords.longitude;
+            db.ref("ubicaciones/" + nombreUsuario).set({
+              lat: lat,
+              lng: lng,
+              timestamp: Date.now()
+            });
+            document.getElementById("estado").innerText = `Ubicación enviada: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+          },
+          error => {
+            document.getElementById("estado").innerText = "Error al obtener ubicación: " + error.message;
+          }
+        );
       } else {
-        elementoEstado.innerText = "La geolocalización no es compatible con este navegador.";
+        document.getElementById("estado").innerText = "La geolocalización no es compatible con este navegador.";
       }
-    }
-
-    const temaGuardado = localStorage.getItem("tema");
-    if (temaGuardado) {
-      document.body.classList.add(temaGuardado);
-    } else {
-      document.body.classList.add("modo-claro");
     }
 
     function cambiarTema() {
       const esOscuro = document.body.classList.contains("modo-oscuro");
       document.body.classList.toggle("modo-oscuro", !esOscuro);
       document.body.classList.toggle("modo-claro", esOscuro);
-      localStorage.setItem("tema", !esOscuro ? "modo-oscuro" : "modo-claro");
     }
   </script>
 </body>
 </html>
+
