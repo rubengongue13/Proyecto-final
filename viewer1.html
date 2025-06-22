@@ -9,6 +9,10 @@
   <link rel="icon" href="icono.png" type="image/png">
 </head>
 <body class="modo-claro">
+   <div class="navegacion">
+    <button onclick="location.href='sender1.html'">Ir a Sender</button>
+  </div>
+
   <aside class="sidebar">
     <h2><i class="fas fa-map-marked-alt"></i> GeoGongue</h2>
     <ul>
@@ -19,15 +23,17 @@
       <input type="text" id="busqueda" placeholder="Buscar usuario..." onkeypress="if(event.key==='Enter'){buscarYEnfocar();}">
       <button onclick="buscarYEnfocar()"><i class="fas fa-search"></i></button>
     </div>
-    <p class="estado-db" id="estado">Conectando a Firebase...</p>
+    <p class="estado-db" id="estado">Autenticando con Firebase...</p>
   </aside>
 
   <main class="mapa">
     <div id="map"></div>
   </main>
 
+  <!-- Firebase y Leaflet -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
   <script>
@@ -40,17 +46,28 @@
   messagingSenderId: "816192291958",
   appId: "1:816192291958:web:a3c49d47a5ff1b4272cb57",
   measurementId: "G-Q4DDVG2M89"
-};;
+};
+// Verificar si el usuario está autenticado usando localStorage
+const emailUsuario = localStorage.getItem("emailUsuario");
+
+if (!emailUsuario) {
+  // Si no se encuentra el correo del usuario en localStorage, redirige a login.html
+  window.location.href = "login.html";
+} else {
+  console.log("Usuario autenticado:", emailUsuario);
+  // Si el usuario está autenticado, puedes proceder con el flujo de la página
+}
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    const auth = firebase.auth();
     const estado = document.getElementById("estado");
     const busqueda = document.getElementById("busqueda");
 
     const map = L.map('map').setView([40.4168, -3.7038], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
-      attribution: ' OpenStreetMap'
+      attribution: '© OpenStreetMap'
     }).addTo(map);
 
     let marcadores = {};
@@ -97,16 +114,25 @@
       }
     }
 
-    db.ref("ubicaciones").on("value", snapshot => {
-      const datos = snapshot.val();
-      if (datos) {
-        estado.innerText = "Ubicaciones cargadas correctamente.";
-        actualizarMapa(datos);
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        const emailKey = user.email.replace(/\./g, '_');
+        estado.innerText = "Autenticado. Cargando ubicaciones...";
+        db.ref("ubicaciones/" + emailKey).on("value", snapshot => {
+          const datos = snapshot.exists() ? { [emailKey]: snapshot.val() } : {};
+          actualizarMapa(datos);
+          estado.innerText = Object.keys(datos).length
+            ? "Ubicaciones cargadas correctamente."
+            : "No hay ubicaciones registradas.";
+        }, error => {
+          estado.innerText = "Error al conectar con Firebase: " + error.message;
+        });
       } else {
-        estado.innerText = "No hay ubicaciones registradas.";
+        estado.innerText = "No has iniciado sesión. Redirigiendo a login...";
+        setTimeout(() => {
+          window.location.href = "login.html";
+        }, 2000);
       }
-    }, (error) => {
-      estado.innerText = "Error al conectar con Firebase: " + error.message;
     });
 
     function cambiarTema() {
