@@ -139,3 +139,32 @@ main.mapa {
     width: 100vw;
   }
 }
+/* Estilo visual para el botón */
+.navegacion button {
+  background: linear-gradient(45deg, #1C5D99, #1769aa); /* Fondo degradado */
+  color: white;
+  border: none;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  text-align: center;
+  padding: 12px 24px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.3s ease, transform 0.3s ease; /* Efectos de transición */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Sombra sutil */
+}
+
+/* Cambio de color al pasar el mouse (hover) */
+.navegacion button:hover {
+  background: linear-gradient(45deg, #156b91, #0c5980); /* Fondo más oscuro al pasar el mouse */
+  transform: scale(1.05); /* Efecto de escala */
+}
+
+/* Efecto de "clic" */
+.navegacion button:active {
+  transform: scale(0.98); /* Botón más pequeño al hacer clic */
+}
+
