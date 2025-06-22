@@ -81,6 +81,78 @@ body.modo-claro {
   background-color: #ffffff55;
 }
 
+/* Mejora para los botones de Login y Registro */
+#loginBtn, #registerBtn {
+  background: linear-gradient(45deg, #639FAB, #1C5D99); /* Fondo degradado */
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.3s ease;
+  width: 100%;
+  margin: 10px 0;
+}
+
+#loginBtn:hover, #registerBtn:hover {
+  background: linear-gradient(45deg, #156b91, #0c5980); /* Cambio de color al pasar el ratón */
+  transform: scale(1.05); /* Efecto de escala */
+}
+
+#loginBtn:active, #registerBtn:active {
+  transform: scale(0.98); /* Efecto de "clic" */
+}
+
+#logoutBtn {
+  background: linear-gradient(45deg, #e44b68, #c63047); /* Fondo rojo para Cerrar sesión */
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.3s ease;
+  width: 100%;
+  margin: 10px 0;
+}
+
+#logoutBtn:hover {
+  background: linear-gradient(45deg, #a03649, #7f1e3c);
+  transform: scale(1.05); /* Efecto de escala */
+}
+
+#logoutBtn:active {
+  transform: scale(0.98); /* Efecto de "clic" */
+}
+
+/* Mejora para el botón de "Ir a ver ubicación" */
+#irAlMapaBtn {
+  background: linear-gradient(45deg, #28a745, #218838); /* Fondo verde */
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.3s ease;
+  display: inline-block;
+  width: 100%;
+  margin: 10px 0;
+}
+
+#irAlMapaBtn:hover {
+  background: linear-gradient(45deg, #1d7c38, #15642a); /* Fondo más oscuro al pasar el mouse */
+  transform: scale(1.05); /* Efecto de escala */
+}
+
+#irAlMapaBtn:active {
+  transform: scale(0.98); /* Efecto de "clic" */
+}
+
 .contenido {
   margin-left: 240px;
   padding: 40px 30px;
@@ -193,3 +265,4 @@ video {
     right: 15px;
   }
 }
+
